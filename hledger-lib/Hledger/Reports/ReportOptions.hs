@@ -117,8 +117,11 @@ data ReportOpts = ReportOpts {
     -- for account transactions reports (aregister)
     ,txn_dates_      :: Bool
     -- for balance reports (bal, bs, cf, is)
-    ,balancecalc_    :: BalanceCalculation
-    ,balanceaccum_   :: BalanceAccumulation
+    ,balancecalc_    :: BalanceCalculation  -- ^ What to calculate in balance report cells
+    ,balanceaccum_   :: BalanceAccumulation -- ^ How to accumulate balance report values over time
+    ,budgetpat_      :: T.Text  -- ^ If non-empty, a case-insensitive description substring
+                                --   to select periodic transactions for budget reports.
+                                --   (Not a regexp, nor a full hledger query, for now.)
     ,accountlistmode_ :: AccountListMode
     ,drop_           :: Int
     ,row_total_      :: Bool
@@ -167,6 +170,7 @@ defreportopts = ReportOpts
     , txn_dates_       = False
     , balancecalc_     = def
     , balanceaccum_    = def
+    , budgetpat_       = ""
     , accountlistmode_ = ALFlat
     , drop_            = 0
     , row_total_       = False
@@ -214,6 +218,7 @@ rawOptsToReportOpts rawopts = do
           ,txn_dates_   = boolopt "txn-dates" rawopts
           ,balancecalc_  = balancecalcopt rawopts
           ,balanceaccum_ = balanceaccumopt rawopts
+          ,budgetpat_   = T.pack $ budgetpatternopt rawopts
           ,accountlistmode_ = accountlistmodeopt rawopts
           ,drop_        = posintopt "drop" rawopts
           ,row_total_   = boolopt "row-total" rawopts
@@ -288,6 +293,10 @@ accountlistmodeopt =
       "tree" -> Just ALTree
       "flat" -> Just ALFlat
       _      -> Nothing
+
+-- Get the argument of the --budget option if any, or the empty string.
+budgetpatternopt :: RawOpts -> String
+budgetpatternopt = fromMaybe "" . maybestringopt "budget"
 
 balancecalcopt :: RawOpts -> BalanceCalculation
 balancecalcopt =
